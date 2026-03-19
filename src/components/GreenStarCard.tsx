@@ -3,9 +3,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore } from '@/store/useAppStore';
 import { calculateVitals } from '@/lib/vitals';
 import PlantSearchModal from './PlantSearchModal';
+import GreenPlanet from './GreenPlanet';
+import VitalGauge from './VitalGauge';
 import type { CareActivityType } from '@/types/database';
-
-const FLOATING_PLANTS = ['🌿', '🍃', '🌱', '✨', '🌾', '🍀'];
 
 const CARE_ACTIVITIES: { type: CareActivityType; label: string; icon: string }[] = [
   { type: 'watering', label: '물주기', icon: '💧' },
@@ -108,10 +108,8 @@ export default function GreenStarCard() {
     setIsActionLoading(false);
   };
 
-  const getVitalColor = (value: number) => {
-    if (value >= 70) return 'bg-lime';
-    if (value >= 40) return 'bg-sunlight';
-    return 'bg-destructive';
+  const vitalScore = (value: number) => {
+    return Math.round(value * 5).toString();
   };
 
   return (
@@ -126,121 +124,53 @@ export default function GreenStarCard() {
               animate={{ opacity: 0, x: p.x, y: p.y, scale: 0 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 1.2 }}
-              className="absolute left-1/2 top-1/3 text-xl pointer-events-none z-10"
+              className="absolute left-1/2 top-1/4 text-xl pointer-events-none z-30"
             >
               {p.emoji}
             </motion.span>
           ))}
         </AnimatePresence>
 
-        {/* Header - Planet */}
-        <div className="glass rounded-2xl p-5 relative overflow-hidden">
-          {/* Floating plant emojis */}
-          <div className="absolute inset-0 overflow-hidden pointer-events-none">
-            {FLOATING_PLANTS.map((emoji, i) => (
-              <motion.span
-                key={i}
-                className="absolute text-sm opacity-20"
-                style={{
-                  left: `${15 + i * 13}%`,
-                  top: `${20 + (i % 3) * 25}%`,
-                }}
-                animate={{
-                  y: [0, -15, 0],
-                  opacity: [0.15, 0.3, 0.15],
-                }}
-                transition={{
-                  duration: 4 + i * 0.5,
-                  repeat: Infinity,
-                  delay: i * 0.8,
-                }}
-              >
-                {emoji}
-              </motion.span>
-            ))}
-          </div>
+        {/* Green Planet */}
+        <GreenPlanet glowIntensity={glowIntensity} />
 
-          {/* Planet avatar */}
-          <div className="flex flex-col items-center relative z-[1]">
-            <motion.div
-              animate={{
-                boxShadow: glowIntensity > 0
-                  ? '0 0 60px rgba(168, 214, 114, 0.5), 0 0 120px rgba(168, 214, 114, 0.2)'
-                  : '0 0 30px rgba(168, 214, 114, 0.1)',
-              }}
-              className="w-24 h-24 rounded-full flex items-center justify-center overflow-hidden mb-3 animate-float"
-              style={{ background: 'rgba(255,255,255,0.08)' }}
-            >
-              {currentPlant?.img_url ? (
-                <img src={currentPlant.img_url} alt="plant" className="w-full h-full object-cover" />
-              ) : (
-                <span className="text-5xl">🌿</span>
-              )}
-            </motion.div>
+        {/* AI Speech bubble */}
+        {currentPlant && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex items-start gap-2 px-2 -mt-2 mb-3"
+          >
+            <div className="shrink-0 w-6 h-6 rounded-full bg-lime/20 border border-lime/30 flex items-center justify-center text-[10px] font-bold text-lime">
+              AI
+            </div>
+            <div className="glass-light rounded-xl rounded-bl-sm px-3 py-2 max-w-[75%]">
+              <p className="text-xs text-foreground/80">{careSuggestion}</p>
+            </div>
+          </motion.div>
+        )}
 
-            <h1 className="text-xl font-semibold text-foreground">
-              {currentPlant ? currentPlant.nickname : '초록별'}
-            </h1>
-            <p className="text-xs text-muted-foreground mt-1">
-              {currentPlant ? currentPlant.plant_name : '나만의 반려식물 행성'}
-            </p>
-            <p className="text-[10px] text-muted-foreground mt-0.5">
-              📍 {weather?.cityName || '위치 확인 중'}
-              {weather && <span> · {weather.description}</span>}
-            </p>
-          </div>
-        </div>
-
-        {/* 4 Vitals */}
-        <div className="glass rounded-2xl p-4 mt-3">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-medium text-foreground">4대 바이탈</h2>
-            {!currentPlant && <span className="text-[10px] text-muted-foreground">식물 등록 후 활성화</span>}
-          </div>
-
+        {/* 4 Vitals Gauges */}
+        <div className="mt-2">
           {!currentPlant ? (
-            <div className="text-center py-6">
+            <div className="glass rounded-2xl p-6 text-center">
               <div className="text-4xl mb-2 opacity-30">🌿</div>
               <p className="text-sm text-muted-foreground">반려식물이 아직 없어요</p>
-              <p className="text-xs text-muted-foreground mt-1">하단의 버튼을 눌러 첫 식물을 등록해주세요</p>
+              <p className="text-xs text-muted-foreground mt-1">아래 버튼을 눌러 첫 식물을 등록해주세요</p>
             </div>
           ) : (
             <div className="grid grid-cols-4 gap-2">
-              {[
-                { id: 'water', icon: '💧', label: '수분', data: vitals.water },
-                { id: 'light', icon: '☀️', label: '조도', data: vitals.light },
-                { id: 'air', icon: '💨', label: '통풍', data: vitals.air },
-                { id: 'temp', icon: '🌡', label: '온도', data: vitals.temp },
-              ].map((item) => (
-                <div key={item.id} className="glass-light rounded-xl p-2.5 text-center">
-                  <div className="text-xs mb-1.5">
-                    {item.icon} <span className="text-muted-foreground">{item.label}</span>{' '}
-                    <span className="text-foreground font-medium">{item.data.value}%</span>
-                  </div>
-                  {/* Progress bar */}
-                  <div className="h-1.5 rounded-full bg-muted/50 overflow-hidden">
-                    <motion.div
-                      initial={{ width: 0 }}
-                      animate={{ width: `${item.data.value}%` }}
-                      transition={{ duration: 1, delay: 0.2 }}
-                      className={`h-full rounded-full ${getVitalColor(item.data.value)}`}
-                    />
-                  </div>
-                  <p className="text-[9px] text-muted-foreground mt-1">{item.data.label}</p>
-                </div>
-              ))}
+              <VitalGauge icon="💧" label="Water" value={vitals.water.value} score={vitalScore(vitals.water.value)} />
+              <VitalGauge icon="☀️" label="Light" value={vitals.light.value} score={vitalScore(vitals.light.value)} />
+              <VitalGauge icon="💨" label="Air" value={vitals.air.value} score={vitalScore(vitals.air.value)} />
+              <VitalGauge icon="🌡" label="Temperature" value={vitals.temp.value} score={vitalScore(vitals.temp.value)} />
             </div>
           )}
         </div>
 
         {/* Care Actions */}
         {currentPlant && (
-          <div className="glass rounded-2xl p-4 mt-3 space-y-3">
-            <div>
-              <span className="text-[10px] text-muted-foreground">다음 케어 제안</span>
-              <p className="text-sm text-foreground mt-0.5">{careSuggestion}</p>
-            </div>
-
+          <div className="glass rounded-2xl p-4 mt-3">
             <div className="grid grid-cols-5 gap-1.5">
               {CARE_ACTIVITIES.map((act) => (
                 <motion.button
