@@ -23,7 +23,7 @@ interface BurstParticle {
 }
 
 export default function GreenStarCard() {
-  const { weather, myPlants, selectedPlant, setSelectedPlant, updateMyPlant, addCareLog } = useAppStore();
+  const { weather, myPlants, selectedPlant, updateMyPlant, addCareLog } = useAppStore();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isActionLoading, setIsActionLoading] = useState(false);
   const [burstParticles, setBurstParticles] = useState<BurstParticle[]>([]);
@@ -33,7 +33,7 @@ export default function GreenStarCard() {
   const vitals = useMemo(() => calculateVitals(weather, currentPlant), [weather, currentPlant]);
 
   const careSuggestion = useMemo(() => {
-    if (!currentPlant) return '반려식물을 등록해주세요';
+    if (!currentPlant) return '반려식물을 등록해주세요 🌱';
     if (currentPlant.soil_moisture_level === 'dry') return '흙이 말랐어요. 물을 듬뿍 주세요! 💧';
 
     const now = new Date();
@@ -134,24 +134,22 @@ export default function GreenStarCard() {
         {/* Green Planet */}
         <GreenPlanet glowIntensity={glowIntensity} />
 
-        {/* AI Speech bubble */}
-        {currentPlant && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="flex items-start gap-2 px-2 -mt-2 mb-3"
-          >
-            <div className="shrink-0 w-6 h-6 rounded-full bg-lime/20 border border-lime/30 flex items-center justify-center text-[10px] font-bold text-lime">
-              AI
-            </div>
-            <div className="glass-light rounded-xl rounded-bl-sm px-3 py-2 max-w-[75%]">
-              <p className="text-xs text-foreground/80">{careSuggestion}</p>
-            </div>
-          </motion.div>
-        )}
+        {/* AI 말풍선 */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex items-start gap-2 px-2 -mt-4 mb-4"
+        >
+          <div className="shrink-0 w-7 h-7 rounded-full bg-lime/20 border border-lime/30 flex items-center justify-center text-[10px] font-bold text-lime">
+            AI
+          </div>
+          <div className="glass-light rounded-xl rounded-bl-sm px-3 py-2.5 max-w-[80%]">
+            <p className="text-xs text-foreground/90 leading-relaxed">{careSuggestion}</p>
+          </div>
+        </motion.div>
 
-        {/* 4 Vitals Gauges */}
-        <div className="mt-2">
+        {/* 4대 바이탈 게이지 */}
+        <div className="mt-1">
           {!currentPlant ? (
             <div className="glass rounded-2xl p-6 text-center">
               <div className="text-4xl mb-2 opacity-30">🌿</div>
@@ -160,15 +158,15 @@ export default function GreenStarCard() {
             </div>
           ) : (
             <div className="grid grid-cols-4 gap-2">
-              <VitalGauge icon="💧" label="Water" value={vitals.water.value} score={vitalScore(vitals.water.value)} />
-              <VitalGauge icon="☀️" label="Light" value={vitals.light.value} score={vitalScore(vitals.light.value)} />
-              <VitalGauge icon="💨" label="Air" value={vitals.air.value} score={vitalScore(vitals.air.value)} />
-              <VitalGauge icon="🌡" label="Temperature" value={vitals.temp.value} score={vitalScore(vitals.temp.value)} />
+              <VitalGauge icon="💧" label="수분" value={vitals.water.value} score={vitalScore(vitals.water.value)} />
+              <VitalGauge icon="☀️" label="조도" value={vitals.light.value} score={vitalScore(vitals.light.value)} />
+              <VitalGauge icon="💨" label="통풍" value={vitals.air.value} score={vitalScore(vitals.air.value)} />
+              <VitalGauge icon="🌡" label="온도" value={vitals.temp.value} score={vitalScore(vitals.temp.value)} />
             </div>
           )}
         </div>
 
-        {/* Care Actions */}
+        {/* 케어 액션 */}
         {currentPlant && (
           <div className="glass rounded-2xl p-4 mt-3">
             <div className="grid grid-cols-5 gap-1.5">
@@ -188,7 +186,7 @@ export default function GreenStarCard() {
           </div>
         )}
 
-        {/* CTA */}
+        {/* 식물 등록 버튼 */}
         <motion.button
           whileTap={{ scale: 0.98 }}
           onClick={() => setIsSearchOpen(true)}
