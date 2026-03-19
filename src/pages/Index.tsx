@@ -148,7 +148,7 @@ export default function Index() {
             className="flex items-center gap-2"
           >
             <span className="text-xl">🌿</span>
-            <span className="text-sm font-semibold text-foreground tracking-wide">Chorokbyeol</span>
+            <span className="text-sm font-semibold text-foreground tracking-wide">초록별</span>
           </motion.div>
           <WeatherWidget />
         </header>
