@@ -148,7 +148,7 @@ export default function Index() {
             className="flex items-center gap-2"
           >
             <span className="text-xl">🌿</span>
-            <span className="text-sm font-semibold text-foreground tracking-wide">Chorokbyeol</span>
+            <span className="text-sm font-semibold text-foreground tracking-wide">초록별</span>
           </motion.div>
           <WeatherWidget />
         </header>
@@ -162,7 +162,7 @@ export default function Index() {
         {/* Footer tagline */}
         <footer className="text-center py-4">
           <p className="text-[10px] text-muted-foreground/50 tracking-widest">
-            생명과 교감하는 가드닝 · Chorokbyeol
+            생명과 교감하는 가드닝 · 초록별
           </p>
         </footer>
       </div>

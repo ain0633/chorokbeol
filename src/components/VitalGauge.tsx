@@ -8,7 +8,6 @@ interface VitalGaugeProps {
 }
 
 export default function VitalGauge({ icon, label, value, score }: VitalGaugeProps) {
-  // Map value (0-100) to gauge angle (-90 to 90 degrees)
   const angle = -90 + (value / 100) * 180;
 
   const getGaugeColor = (val: number) => {
@@ -20,14 +19,12 @@ export default function VitalGauge({ icon, label, value, score }: VitalGaugeProp
   const gaugeColor = getGaugeColor(value);
 
   return (
-    <div className="glass-light rounded-xl p-3 flex flex-col items-center gap-1">
-      <span className="text-xs font-medium text-foreground">{label}</span>
+    <div className="glass-light rounded-xl p-3 flex flex-col items-center gap-1.5">
+      <span className="text-xs font-semibold text-foreground">{label}</span>
 
       {/* Gauge */}
-      <div className="relative w-16 h-9 overflow-hidden">
-        {/* Gauge background arc */}
+      <div className="relative w-16 h-10 overflow-hidden">
         <svg viewBox="0 0 64 36" className="w-full h-full">
-          {/* Background arc */}
           <path
             d="M 6 32 A 26 26 0 0 1 58 32"
             fill="none"
@@ -35,7 +32,6 @@ export default function VitalGauge({ icon, label, value, score }: VitalGaugeProp
             strokeWidth="5"
             strokeLinecap="round"
           />
-          {/* Colored arc */}
           <motion.path
             d="M 6 32 A 26 26 0 0 1 58 32"
             fill="none"
@@ -50,28 +46,24 @@ export default function VitalGauge({ icon, label, value, score }: VitalGaugeProp
         {/* Needle */}
         <motion.div
           className="absolute bottom-0 left-1/2 origin-bottom"
-          style={{ width: '2px', height: '20px', marginLeft: '-1px' }}
+          style={{ width: '2px', height: '18px', marginLeft: '-1px' }}
           initial={{ rotate: -90 }}
           animate={{ rotate: angle }}
           transition={{ duration: 1, delay: 0.3 }}
         >
-          <div
-            className="w-1.5 h-1.5 rounded-full -ml-[1px]"
-            style={{ background: gaugeColor }}
-          />
+          <div className="w-2 h-2 rounded-full -ml-[3px]" style={{ background: gaugeColor }} />
         </motion.div>
-        {/* Center dot */}
-        <div className="absolute bottom-0 left-1/2 w-2 h-2 -ml-1 rounded-full bg-foreground/40" />
+        <div className="absolute bottom-0 left-1/2 w-1.5 h-1.5 -ml-[3px] rounded-full bg-foreground/30" />
       </div>
 
       {/* Score labels */}
-      <div className="flex items-center justify-between w-full px-1 -mt-0.5">
+      <div className="flex items-center justify-between w-full px-1 -mt-1">
         <span className="text-[8px] text-muted-foreground">0</span>
-        <span className="text-[8px] text-muted-foreground">{icon}</span>
+        <span className="text-xs">{icon}</span>
         <span className="text-[8px] text-muted-foreground">5</span>
       </div>
 
-      <span className="text-sm font-semibold text-foreground">{score}</span>
+      <span className="text-base font-bold text-foreground -mt-1">{score}</span>
     </div>
   );
 }
