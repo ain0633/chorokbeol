@@ -11,6 +11,13 @@ export default defineConfig(({ mode }) => ({
     hmr: {
       overlay: false,
     },
+    proxy: {
+      '/api/nongsaro': {
+        target: 'https://api.nongsaro.go.kr',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/nongsaro/, '/service/garden'),
+      },
+    },
   },
   plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),
   resolve: {

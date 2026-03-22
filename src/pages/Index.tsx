@@ -4,6 +4,8 @@ import { useAppStore } from '@/store/useAppStore';
 import GreenStarCard from '@/components/GreenStarCard';
 import GardenList from '@/components/GardenList';
 import WeatherWidget from '@/components/WeatherWidget';
+import UserMenu from '@/components/UserMenu';
+import ScheduleWidget from '@/components/ScheduleWidget';
 
 function getWeatherTheme(condition: string, hour: number) {
   const isNight = hour < 6 || hour >= 20;
@@ -150,12 +152,16 @@ export default function Index() {
             <span className="text-xl">🌿</span>
             <span className="text-sm font-semibold text-foreground tracking-wide">초록별</span>
           </motion.div>
-          <WeatherWidget />
+          <div className="flex items-center gap-3">
+            <WeatherWidget />
+            <UserMenu />
+          </div>
         </header>
 
         {/* Content */}
         <main className="flex-1 flex flex-col items-center justify-center px-4 pb-8 max-w-md mx-auto w-full gap-4">
           <GardenList />
+          <ScheduleWidget />
           <GreenStarCard />
         </main>
 

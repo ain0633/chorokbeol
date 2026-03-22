@@ -12,6 +12,12 @@ const WEATHER_CONDITION_MAP: Record<string, { label: string; emoji: string }> = 
   Mist: { label: '안개', emoji: '🌫️' },
   Fog: { label: '안개', emoji: '🌫️' },
   Haze: { label: '실안개', emoji: '🌫️' },
+  Smoke: { label: '연기', emoji: '🌫️' },
+  Dust: { label: '황사', emoji: '🏜️' },
+  Sand: { label: '모래', emoji: '🏜️' },
+  Ash: { label: '화산재', emoji: '🌋' },
+  Squall: { label: '돌풍', emoji: '💨' },
+  Tornado: { label: '토네이도', emoji: '🌪️' },
 };
 
 function formatTime(unix: number): string {
@@ -22,11 +28,19 @@ function formatTime(unix: number): string {
   });
 }
 
+function getUVIndex(uvi: number): { label: string; color: string } {
+  if (uvi <= 2) return { label: '낮음', color: 'text-green-400' };
+  if (uvi <= 5) return { label: '보통', color: 'text-yellow-400' };
+  if (uvi <= 7) return { label: '높음', color: 'text-orange-400' };
+  if (uvi <= 10) return { label: '매우높음', color: 'text-red-400' };
+  return { label: '위험', color: 'text-purple-400' };
+}
+
 export default function WeatherWidget() {
   const { weather, isLoading, error, setLocation, setWeather, setLoading, setError } = useAppStore();
 
   useEffect(() => {
-    if (weather) return; // Already loaded
+    if (weather) return;
     
     if (!navigator.geolocation) {
       setError('위치 정보를 지원하지 않는 브라우저입니다.');
@@ -41,49 +55,45 @@ export default function WeatherWidget() {
         setLocation({ lat, lon });
 
         try {
-          // Use Open-Meteo (free, no API key needed)
+          const apiKey = import.meta.env.VITE_OPENWEATHERMAP_API_KEY;
+          
+          if (!apiKey) {
+            setError('OpenWeatherMap API 키가 설정되지 않았습니다.');
+            setLoading(false);
+            return;
+          }
+
           const res = await fetch(
-            `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m,cloud_cover&daily=sunrise,sunset&timezone=auto`
+            `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${apiKey}&units=metric&lang=kr`
           );
+
+          if (!res.ok) {
+            throw new Error('날씨 API 요청 실패');
+          }
+
           const data = await res.json();
-          const current = data.current;
 
-          // Map WMO weather codes to conditions
-          const weatherCode = current.weather_code;
-          let condition = 'Clear';
-          let description = '맑음';
-          if (weatherCode >= 1 && weatherCode <= 3) { condition = 'Clouds'; description = '구름'; }
-          if (weatherCode >= 45 && weatherCode <= 48) { condition = 'Fog'; description = '안개'; }
-          if (weatherCode >= 51 && weatherCode <= 57) { condition = 'Drizzle'; description = '이슬비'; }
-          if (weatherCode >= 61 && weatherCode <= 67) { condition = 'Rain'; description = '비'; }
-          if (weatherCode >= 71 && weatherCode <= 77) { condition = 'Snow'; description = '눈'; }
-          if (weatherCode >= 80 && weatherCode <= 82) { condition = 'Rain'; description = '소나기'; }
-          if (weatherCode >= 95) { condition = 'Thunderstorm'; description = '천둥번개'; }
-
-          // Get city name from reverse geocoding
-          let cityName = '내 위치';
-          try {
-            const geoRes = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&accept-language=ko`);
-            const geoData = await geoRes.json();
-            cityName = geoData.address?.city || geoData.address?.town || geoData.address?.village || geoData.address?.county || '내 위치';
-          } catch { /* ignore */ }
+          const cityName = data.name || '내 위치';
+          const condition = data.weather[0]?.main || 'Clear';
+          const description = data.weather[0]?.description || '맑음';
 
           setWeather({
-            temp: Math.round(current.temperature_2m),
-            feelsLike: Math.round(current.apparent_temperature),
-            humidity: current.relative_humidity_2m,
+            temp: Math.round(data.main.temp),
+            feelsLike: Math.round(data.main.feels_like),
+            humidity: data.main.humidity,
             condition,
             description,
-            icon: '',
+            icon: data.weather[0]?.icon || '',
             cityName,
-            windSpeed: current.wind_speed_10m / 3.6, // km/h to m/s
+            windSpeed: data.wind.speed,
             uvi: 0,
-            sunrise: new Date(data.daily.sunrise[0]).getTime() / 1000,
-            sunset: new Date(data.daily.sunset[0]).getTime() / 1000,
-            clouds: current.cloud_cover,
-            visibility: 10000,
+            sunrise: data.sys.sunrise,
+            sunset: data.sys.sunset,
+            clouds: data.clouds.all,
+            visibility: data.visibility || 10000,
           });
-        } catch {
+        } catch (err) {
+          console.error('Weather API error:', err);
           setError('날씨 정보를 불러오는데 실패했습니다.');
         } finally {
           setLoading(false);

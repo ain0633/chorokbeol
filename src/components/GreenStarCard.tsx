@@ -1,8 +1,11 @@
-import { useState, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore } from '@/store/useAppStore';
 import { calculateVitals } from '@/lib/vitals';
+import { generatePlantVoice } from '@/lib/aiVoice';
 import PlantSearchModal from './PlantSearchModal';
+import DiaryModal from './DiaryModal';
+import DiaryList from './DiaryList';
 import GreenPlanet from './GreenPlanet';
 import VitalGauge from './VitalGauge';
 import type { CareActivityType } from '@/types/database';
@@ -25,6 +28,7 @@ interface BurstParticle {
 export default function GreenStarCard() {
   const { weather, myPlants, selectedPlant, updateMyPlant, addCareLog } = useAppStore();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isDiaryOpen, setIsDiaryOpen] = useState(false);
   const [isActionLoading, setIsActionLoading] = useState(false);
   const [burstParticles, setBurstParticles] = useState<BurstParticle[]>([]);
   const [glowIntensity, setGlowIntensity] = useState(0);
@@ -32,29 +36,55 @@ export default function GreenStarCard() {
   const currentPlant = selectedPlant || myPlants[0] || null;
   const vitals = useMemo(() => calculateVitals(weather, currentPlant), [weather, currentPlant]);
 
-  const careSuggestion = useMemo(() => {
-    if (!currentPlant) return '반려식물을 등록해주세요 🌱';
-    if (currentPlant.soil_moisture_level === 'dry') return '흙이 말랐어요. 물을 듬뿍 주세요! 💧';
+  // AI 식물 목소리
+  const [aiMessage, setAiMessage] = useState('');
+  const [isAiLoading, setIsAiLoading] = useState(false);
 
-    const now = new Date();
-    const lastWatered = new Date(currentPlant.last_watered_at);
-    const diffDays = (now.getTime() - lastWatered.getTime()) / (1000 * 60 * 60 * 24);
-    const expectedInterval = (currentPlant.typical_dry_interval_days || 7) * (currentPlant.calibration_factor || 1.0);
-    const progress = diffDays / expectedInterval;
-
-    if (progress >= 1.0) {
-      const overdue = Math.floor(diffDays - expectedInterval);
-      return overdue > 0
-        ? `예상 확인 시점을 ${overdue}일 지났어요. 흙을 확인해줄래? 🌱`
-        : '예상 확인 시점이에요! 지금 흙 상태를 확인해볼까요? ✨';
-    } else if (progress >= 0.7) {
-      const daysLeft = Math.ceil(expectedInterval - diffDays);
-      return `곧 흙 상태를 확인할 시간이에요 (약 ${daysLeft}일 후) ⌛`;
-    } else {
-      const daysLeft = Math.ceil(expectedInterval - diffDays);
-      return `다음 흙 확인까지 약 ${daysLeft}일 남았어요 🌿`;
+  useEffect(() => {
+    if (!currentPlant) {
+      setAiMessage('반려식물을 등록해주세요 🌱');
+      return;
     }
-  }, [currentPlant]);
+
+    let cancelled = false;
+    setIsAiLoading(true);
+
+    generatePlantVoice(currentPlant, weather)
+      .then((msg) => {
+        if (!cancelled) {
+          setAiMessage(msg);
+          setIsAiLoading(false);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          // Fallback 규칙 기반 메시지
+          const now = new Date();
+          const lastWatered = new Date(currentPlant.last_watered_at);
+          const diffDays = (now.getTime() - lastWatered.getTime()) / (1000 * 60 * 60 * 24);
+          const expectedInterval = (currentPlant.typical_dry_interval_days || 7) * (currentPlant.calibration_factor || 1.0);
+          const progress = diffDays / expectedInterval;
+
+          if (currentPlant.soil_moisture_level === 'dry') {
+            setAiMessage('흙이 말랐어요. 물을 듬뿍 주세요! 💧');
+          } else if (progress >= 1.0) {
+            const overdue = Math.floor(diffDays - expectedInterval);
+            setAiMessage(overdue > 0
+              ? `예상 확인 시점을 ${overdue}일 지났어요. 흙을 확인해줄래? 🌱`
+              : '예상 확인 시점이에요! 지금 흙 상태를 확인해볼까요? ✨');
+          } else if (progress >= 0.7) {
+            const daysLeft = Math.ceil(expectedInterval - diffDays);
+            setAiMessage(`곧 흙 상태를 확인할 시간이에요 (약 ${daysLeft}일 후) ⌛`);
+          } else {
+            const daysLeft = Math.ceil(expectedInterval - diffDays);
+            setAiMessage(`다음 흙 확인까지 약 ${daysLeft}일 남았어요 🌿`);
+          }
+          setIsAiLoading(false);
+        }
+      });
+
+    return () => { cancelled = true; };
+  }, [currentPlant, weather]);
 
   const triggerResonance = () => {
     const emojis = ['✨', '🌟', '💫', '⭐', '🌿', '🍃'];
@@ -134,19 +164,47 @@ export default function GreenStarCard() {
         {/* Green Planet */}
         <GreenPlanet glowIntensity={glowIntensity} />
 
-        {/* AI 말풍선 */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="flex items-start gap-2 px-2 -mt-4 mb-4"
-        >
-          <div className="shrink-0 w-7 h-7 rounded-full bg-lime/20 border border-lime/30 flex items-center justify-center text-[10px] font-bold text-lime">
-            AI
+        {/* AI 식물 목소리 */}
+        {currentPlant && (
+          <div className="glass-light rounded-xl px-3 py-2.5 -mt-4 mb-4 w-full">
+            <div className="flex items-center gap-2">
+              <div className="shrink-0 w-7 h-7 rounded-full bg-lime/20 border border-lime/30 flex items-center justify-center text-[10px] font-bold text-lime">
+                AI
+              </div>
+              <div className="flex-1">
+                {isAiLoading ? (
+                  <div className="flex items-center gap-1">
+                    <motion.span
+                      animate={{ opacity: [0.3, 1, 0.3] }}
+                      transition={{ duration: 1.5, repeat: Infinity }}
+                      className="text-xs text-muted-foreground"
+                    >
+                      생각 중
+                    </motion.span>
+                    <motion.span
+                      animate={{ opacity: [0.3, 1, 0.3] }}
+                      transition={{ duration: 1.5, repeat: Infinity, delay: 0.2 }}
+                      className="text-xs text-muted-foreground"
+                    >
+                      .
+                    </motion.span>
+                    <motion.span
+                      animate={{ opacity: [0.3, 1, 0.3] }}
+                      transition={{ duration: 1.5, repeat: Infinity, delay: 0.4 }}
+                      className="text-xs text-muted-foreground"
+                    >
+                      .
+                    </motion.span>
+                  </div>
+                ) : (
+                  <p className="text-xs text-foreground/90 leading-relaxed">
+                    {aiMessage}
+                  </p>
+                )}
+              </div>
+            </div>
           </div>
-          <div className="glass-light rounded-xl rounded-bl-sm px-3 py-2.5 max-w-[80%]">
-            <p className="text-xs text-foreground/90 leading-relaxed">{careSuggestion}</p>
-          </div>
-        </motion.div>
+        )}
 
         {/* 4대 바이탈 게이지 */}
         <div className="mt-1">
@@ -186,6 +244,24 @@ export default function GreenStarCard() {
           </div>
         )}
 
+        {/* 초록별 일기 버튼 */}
+        {currentPlant && (
+          <motion.button
+            whileTap={{ scale: 0.98 }}
+            onClick={() => setIsDiaryOpen(true)}
+            className="w-full mt-3 py-3 rounded-2xl border border-lime/30 text-lime text-sm font-medium transition-colors cursor-pointer flex items-center justify-center gap-2 bg-lime/5 hover:bg-lime/10"
+          >
+            📝 초록별 일기 쓰기
+          </motion.button>
+        )}
+
+        {/* 초록별 일기 목록 */}
+        {currentPlant && (
+          <div className="mt-3">
+            <DiaryList plantId={currentPlant.id} />
+          </div>
+        )}
+
         {/* 식물 등록 버튼 */}
         <motion.button
           whileTap={{ scale: 0.98 }}
@@ -197,6 +273,7 @@ export default function GreenStarCard() {
       </div>
 
       <PlantSearchModal isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
+      <DiaryModal isOpen={isDiaryOpen} onClose={() => setIsDiaryOpen(false)} />
     </>
   );
 }
